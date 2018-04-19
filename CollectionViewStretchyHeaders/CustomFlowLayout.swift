@@ -18,6 +18,7 @@ class CustomFlowLayout: UICollectionViewFlowLayout {
         sectionInsetReference = .fromSafeArea
         sectionInset = UIEdgeInsets(top: margin, left: margin, bottom: margin, right: margin)
         headerReferenceSize = CGSize(width: 0, height: 80)
+        sectionHeadersPinToVisibleBounds = false
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -28,10 +29,26 @@ class CustomFlowLayout: UICollectionViewFlowLayout {
         return true
     }
     
+    override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
+        guard let collectionView = collectionView else { return nil }
+        let rectAttributes = super.layoutAttributesForElements(in: rect)!.map({ $0.copy() as! UICollectionViewLayoutAttributes })
+
+        let offsetY = collectionView.contentOffset.y + collectionView.safeAreaInsets.top
+        if let firstHeader = rectAttributes.first(where: { $0.representedElementKind == UICollectionElementKindSectionHeader && offsetY < 0}) {
+            let origin = CGPoint(x: firstHeader.frame.origin.x, y: firstHeader.frame.minY - offsetY.magnitude)
+            let size = CGSize(width: firstHeader.frame.width, height: max(0, headerReferenceSize.height + offsetY.magnitude))
+            firstHeader.frame = CGRect(origin: origin, size: size)
+        }
+
+        return rectAttributes
+    }
+    
     /*
+     Alternative (does not work properly for multiple section headers)
      Source:  [DIY - Stretchy Headers - Custom Collection View Layouts - raywenderlich.com](https://www.youtube.com/watch?v=faUirawzPaY)
      */
     
+    /*
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
         guard let collectionView = collectionView else { return nil }
         let rectAttributes = super.layoutAttributesForElements(in: rect)!.map({ $0.copy() as! UICollectionViewLayoutAttributes })
@@ -47,9 +64,10 @@ class CustomFlowLayout: UICollectionViewFlowLayout {
         }
         return rectAttributes
     }
-
+     */
+    
     /*
-     Alternative
+     Alternative (does not work properly for multiple section headers)
      Source:  [StretchyHeaderCollectionViewLayout](https://github.com/nrj/StretchyHeaderCollectionViewLayoutY)
      */
     
